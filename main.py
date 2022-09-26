@@ -1,13 +1,20 @@
 from faker import Faker
 import secrets
 import string
+import pandas
 import pandas as pd
 import re
-import pyodbc
+#import pyodbc
 import os
 from pathlib import Path
-import HelperLibrary.helperLibrary as helperLib
-
+from pandas import read_excel
+import helperLibrary as helperLib
+import openpyxl
+import mysql.connector
+import collections
+from sqlalchemy import create_engine
+import xlrd
+import numpy as np
 
 def logger():
     config_folder_path = Path("./Configuration/")
@@ -61,20 +68,42 @@ def logger():
 
     helperLib.print_msg("INFO", f"paths : {inbound_folder_path}, {outbound_folder_path}")
 
-
-def tdm_api_genrate(databse_name, database_connect, script_type, no_of_rows, columns_array, outbound_folder_path):
+def tdm_api_genrate(database_connect, script_type, no_of_rows, datavalues, columns_array, pyodbc=None):
     # Initialize
-    if database_connect == "true":
-        conn = pyodbc.connect('Driver={SQL Server};'
-                              'Server=server_name;'
-                              'Database={databse_name};'
-                              'Trusted_Connection=yes;')
+    if database_connect == "True":
+        mydb = mysql.connector.connect(
+            host="localhost",
+            user="root",
+            password="MySQL$1474",
+            database="POCTDM"
+        )
 
-        cursor = conn.cursor()
-        cursor.execute(f'SELECT Top {no_of_rows} FROM table_name')
+        cur = mydb.cursor()
 
-        for i in cursor:
-            print(i)
+        cur.execute("SELECT * FROM customer")
+
+        rows = cur.fetchall()
+
+        objects_list = []
+        d = dict()
+        for row in rows:
+            d = collections.OrderedDict()
+            d['id'] = row[0]
+            d['Name'] = row[1]
+            d['Age'] = row[2]
+            d['SSN'] = row[3]
+            d['OrderId'] = row[4]
+            objects_list.append(d)
+        d = {"database-connect": "false", "type": "mask", "rows": 100, "data": objects_list,
+             "mask-columns": [
+                 "ssn",
+                 "ccn"
+             ]
+             }
+        j = json.dumps(d)
+
+        print(j)
+
     else:
         fake = Faker(locale='en_US')
         fake_workers = [
@@ -93,8 +122,15 @@ def tdm_api_genrate(databse_name, database_connect, script_type, no_of_rows, col
                     df.emp_ssn = df.emp_ssn.apply(lambda x: re.sub(r'\d', '*', x, count=5))
                 elif col == "ccn":
                     df.credit_card_number = df.credit_card_number.apply(lambda x: re.sub(r'\d', '*', x, count=10))
-            df.to_excel(outbound_folder_path + "Masked_data.xlsx")
+            df.to_excel("C:/Users/pavankumark/PycharmProjects/POCTDM/Output/Data.xlsx", sheet_name="Masked_Data")
+            df['emp_id']=np.arange(len(df))
+            engine = create_engine("mysql+mysqldb://root:MySQL$1474@localhost/POCTDM", echo=False)
+        df.to_sql(con=engine, name='datamasked', if_exists='append', index=False)
+
         json = df.to_json()
         return json
+
+
+
 
 

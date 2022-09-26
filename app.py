@@ -1,8 +1,9 @@
 from flask import Flask, request, json
 from flask import jsonify
 import main
-import HelperLibrary.helperLibrary as helperLib
+import helperLibrary as helperLib
 app = Flask(__name__)
+
 
 """ Function for checking API is running or not"""
 @app.route('/')
@@ -14,12 +15,14 @@ def index():
 @app.route('/clone_json', methods=['POST'])
 def tdm_api_genrate():
 	content_type = request.headers.get('Content-Type')
+	print("Hello POCTDM")
 	if (content_type == 'application/json'):
 		data = json.loads(request.data)
-		print(data['database'], data['type'], data['rows'])
-		databse_name, database_connect, script_type, no_of_rows, columns_array = data['database'], data['database-connect'], data['type'], data['rows'], data['mask-columns']
+		# print(data['database'], data['type'], data['rows'])
+		# inbound_folder_path, outbound_folder_path = main.logger()
+		database_connect, script_type, no_of_rows, data, columns_array = data['database-connect'], data['type'], data['rows'], data['data'], data['mask-columns']
 		helperLib.print_msg("INFO", "API Called successfully")
-		json_df = main.tdm_api_genrate(databse_name, database_connect, script_type, no_of_rows, columns_array, outbound_folder_path)
+		json_df = main.tdm_api_genrate(database_connect, script_type, no_of_rows, data, columns_array)
 		return jsonify(status="Success", Message=json_df)
 	else:
 		helperLib.print_msg("ERROR", "")
@@ -27,6 +30,6 @@ def tdm_api_genrate():
 
 
 if __name__ == '__main__':
-	app.run(debug=True, host='127.0.0.1', port=8080)
-	inbound_folder_path, outbound_folder_path = main.logger()
+	app.run(debug=True, host='127.0.0.1', port=5000)
+
 
